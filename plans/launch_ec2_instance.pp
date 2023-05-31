@@ -9,10 +9,10 @@ plan node_orchestration::launch_ec2_instance (
   Optional[String] $region = undef,
 ) {
   # Let defaults be defined in Hiera, overridden with parameters
-  $real_region     = pick($region, lookup('node_orchestration_ec2_region', Optional[String], 'first', undef))
+  $real_region     = pick($region, lookup('node_orchestration::ec2_region', Optional[String], 'first', undef))
 
-  $api_token       = lookup('node_orchestration_api_token', String)
-  $ssh_private_key = lookup('node_orchestration_ssh_private_key', String)
+  $api_token       = lookup('node_orchestration::api_token', String)
+  $ssh_private_key = lookup('node_orchestration::ssh_private_key', String)
   $instance_types  = lookup('node_orchestration::ec2_instance_types', Hash)
 
   unless $instance_types[$size] {

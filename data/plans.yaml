@@ -1,5 +1,9 @@
 ---
+lookup_options:
+  node_orchestration::ec2_instance_types:
+    merge: hash
+
 node_orchestration::ec2_instance_types:
-  small: 't2.micro'
-  medium: 't2.small'
-  large: 't2.medium'
+  small: 't3.small'
+  medium: 't3.medium'
+  large: 't3.large'
