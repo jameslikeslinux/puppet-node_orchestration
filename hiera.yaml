@@ -19,3 +19,8 @@ hierarchy:
       - "os/%{facts.os.family}.yaml"
   - name: 'common'
     path: 'common.yaml'
+
+plan_hierarchy:
+  - name: 'Plan data'
+    paths:
+      - 'plans.yaml'

@@ -1,0 +1,5 @@
+---
+node_orchestration::ec2_instance_types:
+  small: 't2.micro'
+  medium: 't2.small'
+  large: 't2.medium'
