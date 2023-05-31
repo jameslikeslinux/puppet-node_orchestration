@@ -5,6 +5,8 @@
 # @param image_id Overrides the default AMI set in Hiera
 # @param ami_user Overrides the default AMI username set in Hiera
 # @param key_name Overrides the default SSH key name set in Hiera
+# @param security_groups Overrides the default SG or list of SGs set in Hiera
+# @param subnet Overrides the default subnet name set in Hiera
 # @param region Overrides the default region set in Hiera
 plan node_orchestration::launch_ec2_instance (
   String $name,
@@ -24,6 +26,8 @@ plan node_orchestration::launch_ec2_instance (
   $real_subnet   = pick($subnet, lookup('node_orchestration::ec2_subnet', Optional[String], 'first', undef))
   $real_region   = pick($region, lookup('node_orchestration::ec2_region', Optional[String], 'first', undef))
 
+  $puppet_server   = lookup('node_orchestration::puppet_server', String)
+  $task_server     = lookup('node_orchestration::task_server', String)
   $api_token       = lookup('node_orchestration::api_token', String)
   $ssh_private_key = lookup('node_orchestration::ssh_private_key', String)
   $instance_types  = lookup('node_orchestration::ec2_instance_types', Hash)
@@ -32,10 +36,10 @@ plan node_orchestration::launch_ec2_instance (
     fail("Size '${size}' not found in 'node_orchestration_ec2_instance_types' lookup hash")
   }
 
-  run_task('aws::create_instance', $settings::server, 'Create the instance', {
+  run_task('aws::create_instance', $task_server, 'Create the instance', {
     image_id        => $real_image_id,
     instance_type   => $instance_types[$size],
-    key_name        => $real_key_name
+    key_name        => $real_key_name,
     name            => $name,
     region          => $real_region,
     security_groups => $real_sgs,
@@ -47,7 +51,7 @@ plan node_orchestration::launch_ec2_instance (
       break()
     }
 
-    $resource = run_command("/opt/puppetlabs/bin/puppet resource --to_yaml ec2_instance ${name.shellquote}", $settings::server, 'Check if the instance is running', {
+    $resource = run_command("/opt/puppetlabs/bin/puppet resource --to_yaml ec2_instance ${name.shellquote}", $task_server, 'Check if the instance is running', {
       _env_vars => { 'AWS_REGION' => $real_region },
     }).first.value['stdout'].parseyaml
 
@@ -67,7 +71,7 @@ plan node_orchestration::launch_ec2_instance (
 
   $type_header = 'Content-Type: application/json'
   $auth_header = "X-Authentication: ${api_token}"
-  $uri = "https://localhost:8143/inventory/v1/command/create-connection"
+  $uri = 'https://localhost:8143/inventory/v1/command/create-connection'
   $connection_config = {
     'certnames'            => [$name],
     'type'                 => 'ssh',
@@ -82,10 +86,10 @@ plan node_orchestration::launch_ec2_instance (
     'duplicates'           => 'replace',
   }.to_json
 
-  run_command("/usr/bin/curl --insecure --header ${type_header.shellquote} --header ${auth_header.shellquote} --request POST ${uri.shellquote} --data ${connection_config.shellquote}", $settings::server, 'Register inventory connection to the new instance')
+  run_command("/usr/bin/curl --insecure --header ${type_header.shellquote} --header ${auth_header.shellquote} --request POST ${uri.shellquote} --data ${connection_config.shellquote}", $task_server, 'Register inventory connection to the new instance')
 
   run_task('pe_bootstrap', $name, 'Bootstrap the Puppet agent', {
     certname => $name,
-    server   => 'puppet.james.tl',
+    server   => $puppet_server,
   })
 }
