@@ -1,117 +1,101 @@
 # node_orchestration
 
-Welcome to your new module. A short overview of the generated parts can be found
-in the [PDK documentation][1].
-
-The README template below provides a starting point with details about what
-information to include in your README.
+Tasks and plans for automatically provisioning cloud instances, registering
+them to Puppet Enterprise, and bootstrapping Puppet agent on them.
 
 ## Table of Contents
 
 1. [Description](#description)
 1. [Setup - The basics of getting started with node_orchestration](#setup)
-    * [What node_orchestration affects](#what-node_orchestration-affects)
     * [Setup requirements](#setup-requirements)
     * [Beginning with node_orchestration](#beginning-with-node_orchestration)
 1. [Usage - Configuration options and additional functionality](#usage)
 1. [Limitations - OS compatibility, etc.](#limitations)
-1. [Development - Guide for contributing to the module](#development)
 
 ## Description
 
-Briefly tell users why they might want to use your module. Explain what your
-module does and what kind of problems users can solve with it.
-
-This should be a fairly short description helps the user decide if your module
-is what they want.
+This module wraps low-level automation for cloud providers to provide
+reasonable default settings and a simple user interface to create new nodes in
+Puppet Enterprise. The plans provided in this module will launch an instance,
+register it with the PE inventory service, and bootstrap Puppet agent on the
+new node. By looking up common organization settings from Hiera, consistency
+among the nodes managed by this automation is ensured. Puppet Orchestrator also
+provides granular access control that can eliminate the need for direct user
+access to the cloud providers.
 
 ## Setup
 
-### What node_orchestration affects **OPTIONAL**
+### Setup Requirements
 
-If it's obvious what your module touches, you can skip this section. For
-example, folks can probably figure out that your mysql_instance module affects
-their MySQL instances.
-
-If there's more that they should know about, though, this is the place to
-mention:
-
-* Files, packages, services, or operations that the module will alter, impact,
-  or execute.
-* Dependencies that your module automatically installs.
-* Warnings or other important notices.
-
-### Setup Requirements **OPTIONAL**
-
-If your module requires anything extra before setting up (pluginsync enabled,
-another module, etc.), mention it here.
-
-If your most recent release breaks compatibility or requires particular steps
-for upgrading, you might want to include an additional "Upgrading" section here.
+1. Create an IAM user with the `AmazonEC2FullAccess` policy. This policy is
+   sufficient, but not necessarily required. There may be a reduced set of
+   privileges that can be associated with this user. Create an access key for
+   this user. Pass the key information to the `node_orchestration::aws` class
+   which you should declare on your Puppet server, like:
+   ```puppet
+   class { 'node_orchestration::aws':
+     access_key_id     => 'AKIASUQFAKEACCESSKEY',
+     secret_access_key => Sensitive('the-secret-access-key'),
+     region            => 'us-east-1', # the default region to interact with
+   }
+   ```
+   These values can of course be set in Hiera.
+2. Define a `plan_hierarchy` in Hiera as described at
+   https://www.puppet.com/docs/bolt/latest/hiera.html#outside-apply-blocks.
+3. Create the following AWS resources: SSH key pair (note name and private key
+   content), named subnet (VPC subnets have no names out of the box), and one
+   or more named security groups.
+4. Somewhere in the Hiera plan hierarchy, define the following settings:
+   ```yaml
+   ---
+   node_orchestration::ec2_key_name: 'the-key-name'
+   node_orchestration::ec2_subnet: 'the-subnet-name'
+   node_orchestration::ec2_security_groups: ['sg1', 'sg2', etc...]
+   node_orchestration::ssh_private_key: >
+     ENC[PKCS7,MII...the-eyaml-encrypted-private-key-contents]
+   ```
+5. Create a new PE user role called "Inventory Manager" with the permissions
+   from type "Nodes" with action "add and delete connection information from
+   inventory service." Assign a new service account to this role and generate a
+   long-lived API token for the account, such as with the command: `puppet
+   access login --lifetime 1y --print`. Provide the token in the Hiera plan
+   hierarchy under the key `node_orchestration::api_token`. EYAML is suggested.
+6. Tell the plan where to run its tasks with the Hiera plan hierarchy key
+   `node_orchestration::task_server`. This is the server where you declared the
+   `node_orchestration::aws` class. If this differs from your main Puppet
+   server, also set the `node_orchestrator::puppet_server` key so the plan
+   knows against which server to bootstrap the new agent.
 
 ### Beginning with node_orchestration
 
-The very basic steps needed for a user to get the module up and running. This
-can include setup steps, if necessary, or it can be an example of the most basic
-use of the module.
+When the setup requirements are satisfied, the plans provided by this module
+can be run from the PE console.
 
 ## Usage
 
-Include usage examples for common use cases in the **Usage** section. Show your
-users how to use your module to solve problems, and be sure to include code
-examples. Include three to five examples of the most important or common tasks a
-user can accomplish with your module. Show users how to accomplish more complex
-tasks that involve different types, classes, and functions working in tandem.
+### `node_orchestration::launch_ec2_instance`
 
-## Reference
+Create an EC2 instance with default settings.
 
-This section is deprecated. Instead, add reference information to your code as
-Puppet Strings comments, and then use Strings to generate a REFERENCE.md in your
-module. For details on how to add code comments and generate documentation with
-Strings, see the [Puppet Strings documentation][2] and [style guide][3].
+* `name`: The name of the instance to create
+* `size`: The type of instance to create (small, medium, large)
+* `image_id`: Overrides the default AMI set in Hiera
+* `ami_user`: Overrides the default AMI username set in Hiera
+* `key_name`: Overrides the default SSH key name set in Hiera
+* `security_groups`: Overrides the default SG or list of SGs set in Hiera
+* `subnet`: Overrides the default subnet name set in Hiera
+* `region`: Overrides the default region set in Hiera
 
-If you aren't ready to use Strings yet, manually create a REFERENCE.md in the
-root of your module directory and list out each of your module's classes,
-defined types, facts, functions, Puppet tasks, task plans, and resource types
-and providers, along with the parameters for each.
-
-For each element (class, defined type, function, and so on), list:
-
-* The data type, if applicable.
-* A description of what the element does.
-* Valid values, if the data type doesn't make it obvious.
-* Default value, if any.
-
-For example:
-
-```
-### `pet::cat`
-
-#### Parameters
-
-##### `meow`
-
-Enables vocalization in your cat. Valid options: 'string'.
-
-Default: 'medium-loud'.
-```
+The available sizes: small, medium, large; map to EC2 instance types t3.small,
+t3.medium, and t3.large by default. This can be overridden with the
+`node_orchestration::ec2_instance_types` Hiera plan data hash to provide
+reasonable organization defaults. Likewise, many of the plan parameters can be
+expressed as defaults in Hiera plan data.
 
 ## Limitations
 
-In the Limitations section, list any incompatibilities, known issues, or other
-warnings.
-
-## Development
-
-In the Development section, tell other users the ground rules for contributing
-to your project and how they should submit their work.
-
-## Release Notes/Contributors/Etc. **Optional**
-
-If you aren't using changelog, put your release notes here (though you should
-consider using changelog). You can also add any additional sections you feel are
-necessary or important to include here. Please use the `##` header.
-
-[1]: https://puppet.com/docs/pdk/latest/pdk_generating_modules.html
-[2]: https://puppet.com/docs/puppet/latest/puppet_strings.html
-[3]: https://puppet.com/docs/puppet/latest/puppet_strings_style.html
+This is a proof-of-concept module that provides basic support for EC2. Not all
+the EC2 settings you might want to control are exposed, but the plans as
+implemented aim to demonstrate various ways those settings can be defined: as
+parameters, in module data, and Hiera. Implementations for other cloud
+providers may look very different from this initial EC2 version.

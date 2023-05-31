@@ -26,8 +26,8 @@ plan node_orchestration::launch_ec2_instance (
   $real_subnet   = pick($subnet, lookup('node_orchestration::ec2_subnet', Optional[String], 'first', undef))
   $real_region   = pick($region, lookup('node_orchestration::ec2_region', Optional[String], 'first', undef))
 
-  $puppet_server   = lookup('node_orchestration::puppet_server', String)
   $task_server     = lookup('node_orchestration::task_server', String)
+  $puppet_server   = lookup('node_orchestration::puppet_server', String, 'first', $task_server)
   $api_token       = lookup('node_orchestration::api_token', String)
   $ssh_private_key = lookup('node_orchestration::ssh_private_key', String)
   $instance_types  = lookup('node_orchestration::ec2_instance_types', Hash)
