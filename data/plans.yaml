@@ -7,3 +7,7 @@ node_orchestration::ec2_instance_types:
   small: 't3.small'
   medium: 't3.medium'
   large: 't3.large'
+
+# Provide reasonable default: Ubuntu 22.04
+node_orchestration::ec2_image_id: 'ami-053b0d53c279acc90'
+node_orchestration::ec2_ami_user: 'ubuntu'
