@@ -6,7 +6,18 @@
   "license": "Apache-2.0",
   "source": "",
   "dependencies": [
-
+    {
+      "name": "puppetlabs-aws",
+      "version_requirement": ">= 2.0.0 < 3.0.0"
+    },
+    {
+      "name": "puppetlabs-inifile",
+      "version_requirement": ">= 5.0.0 < 7.0.0"
+    },
+    {
+      "name": "puppetlabs-stdlib",
+      "version_requirement": ">= 8.0.0 < 10.0.0"
+    }
   ],
   "operatingsystem_support": [
     {
