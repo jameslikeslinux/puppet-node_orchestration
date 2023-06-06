@@ -10,13 +10,10 @@ class node_orchestration::aws (
   Sensitive $secret_access_key,
   String $region,
 ) {
-  package { [
-    'aws-sdk',
-    'retries',
-  ]:
+  ensure_resource('package', ['aws-sdk', 'retries'], {
     ensure   => installed,
     provider => 'puppet_gem',
-  }
+  })
 
   file { "${settings::confdir}/puppetlabs_aws_credentials.ini":
     ensure => file,

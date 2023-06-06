@@ -2,3 +2,5 @@
 lookup_options:
   node_orchestration::aws::secret_access_key:
     convert_to: "Sensitive"
+  node_orchestration::azure::client_secret:
+    convert_to: "Sensitive"
