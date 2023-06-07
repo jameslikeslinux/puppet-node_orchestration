@@ -33,7 +33,7 @@ plan node_orchestration::launch_ec2_instance (
   $instance_types  = lookup('node_orchestration::ec2_instance_types', Hash)
 
   unless $instance_types[$size] {
-    fail("Size '${size}' not found in 'node_orchestration_ec2_instance_types' lookup hash")
+    fail("Size '${size}' not found in 'node_orchestration::ec2_instance_types' lookup hash")
   }
 
   run_task('aws::create_instance', $task_server, 'Create the instance', {
