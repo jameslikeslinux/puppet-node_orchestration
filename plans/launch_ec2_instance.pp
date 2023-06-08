@@ -27,9 +27,6 @@ plan node_orchestration::launch_ec2_instance (
   $real_region   = pick($region, lookup('node_orchestration::ec2_region', Optional[String], 'first', undef))
 
   $task_server     = lookup('node_orchestration::task_server', String)
-  $puppet_server   = lookup('node_orchestration::puppet_server', String, 'first', $task_server)
-  $api_token       = lookup('node_orchestration::api_token', String)
-  $ssh_private_key = lookup('node_orchestration::ssh_private_key', String)
   $instance_types  = lookup('node_orchestration::ec2_instance_types', Hash)
 
   unless $instance_types[$size] {
@@ -69,27 +66,9 @@ plan node_orchestration::launch_ec2_instance (
     fail('Instance failed to launch within 60 seconds')
   }
 
-  $type_header = 'Content-Type: application/json'
-  $auth_header = "X-Authentication: ${api_token}"
-  $uri = 'https://localhost:8143/inventory/v1/command/create-connection'
-  $connection_config = {
-    'certnames'            => [$name],
-    'type'                 => 'ssh',
-    'parameters'           => {
-      'user'     => $real_ami_user,
-      'run-as'   => 'root',
-      'hostname' => $hostname,
-    },
-    'sensitive_parameters' => {
-      'private-key-content' => $ssh_private_key,
-    },
-    'duplicates'           => 'replace',
-  }.to_json
-
-  run_command("/usr/bin/curl --insecure --header ${type_header.shellquote} --header ${auth_header.shellquote} --request POST ${uri.shellquote} --data ${connection_config.shellquote}", $task_server, 'Register inventory connection to the new instance')
-
-  run_task('pe_bootstrap', $name, 'Bootstrap the Puppet agent', {
-    certname => $name,
-    server   => $puppet_server,
+  run_plan('node_orchestration::bootstrap_agent', {
+    name     => $name,
+    user     => $real_ami_user,
+    hostname => $hostname,
   })
 }

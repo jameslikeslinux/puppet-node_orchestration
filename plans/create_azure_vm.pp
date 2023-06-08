@@ -16,9 +16,6 @@ plan node_orchestration::create_azure_vm (
   $real_resource_group = pick($resource_group, lookup('node_orchestration::az_resource_group', Optional[String], 'first', undef))
 
   $task_server     = lookup('node_orchestration::task_server', String)
-  $puppet_server   = lookup('node_orchestration::puppet_server', String, 'first', $task_server)
-  $api_token       = lookup('node_orchestration::api_token', String)
-  $ssh_private_key = lookup('node_orchestration::ssh_private_key', String)
   $vm_sizes        = lookup('node_orchestration::az_vm_sizes', Hash)
 
   unless $vm_sizes[$size] {
@@ -35,5 +32,14 @@ plan node_orchestration::create_azure_vm (
     '--ssh-key-name', $real_key_name,
   ].shellquote
 
-  run_command($vm_create_command, $task_server, 'Create the VM')
+  $vm_info = run_command($vm_create_command, $task_server, 'Create the VM').first.value['stdout'].parsejson
+
+  log::info('Waiting for instance to finish booting')
+  ctrl::sleep(60)
+
+  run_plan('node_orchestration::bootstrap_agent', {
+    name     => $name,
+    user     => $real_admin_user,
+    hostname => $vm_info['publicIpAddress'],
+  })
 }
