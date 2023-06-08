@@ -1,5 +1,7 @@
 ---
 lookup_options:
+  node_orchestration::az_admin_password:
+    convert_to: 'Sensitive'
   node_orchestration::az_vm_sizes:
     merge: hash
   node_orchestration::ec2_instance_types:

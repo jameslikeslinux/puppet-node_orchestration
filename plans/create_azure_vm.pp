@@ -6,13 +6,13 @@ plan node_orchestration::create_azure_vm (
   Enum['small', 'medium', 'large'] $size,
   Optional[String] $image_id = undef,
   Optional[String] $admin_user = undef,
-  Optional[String] $key_name = undef,
+  Optional[Sensitive] $admin_password = undef,
   Optional[String] $resource_group = undef,
 ) {
   # Let defaults be defined in Hiera, overridden with parameters
   $real_image_id       = pick($image_id, lookup('node_orchestration::az_image_id', Optional[String], 'first', undef))
   $real_admin_user     = pick($admin_user, lookup('node_orchestration::az_admin_user', Optional[String], 'first', undef))
-  $real_admin_password = pick($admin_user, lookup('node_orchestration::az_admin_password', Optional[String], 'first', undef))
+  $real_admin_password = pick($admin_password, lookup('node_orchestration::az_admin_password', Optional[Sensitive], 'first', undef))
   $real_resource_group = pick($resource_group, lookup('node_orchestration::az_resource_group', Optional[String], 'first', undef))
 
   $task_server     = lookup('node_orchestration::task_server', String)
@@ -32,7 +32,7 @@ plan node_orchestration::create_azure_vm (
     # Avoid SSH pubkey b/c Azure only supports ssh-rsa, for which
     # PE wants to use SHA1 hashes disallowed by modern OpenSSH
     '--admin-username', $real_admin_user,
-    '--admin-password', $real_admin_password,
+    '--admin-password', $real_admin_password.unwrap,
     '--authentication-type', 'password',
   ].shellquote
 

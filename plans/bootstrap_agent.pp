@@ -14,9 +14,14 @@ plan node_orchestration::bootstrap_agent (
   $api_token       = lookup('node_orchestration::api_token', String)
 
   if $password {
-    $ssh_private_key = undef
+    $sensitive_parameters = {
+      'password' => $password.unwrap,
+    }
   } else {
     $ssh_private_key = lookup('node_orchestration::ssh_private_key', String)
+    $sensitive_parameters = {
+      'private-key-content' => $ssh_private_key,
+    }
   }
 
   $type_header = 'Content-Type: application/json'
@@ -31,10 +36,7 @@ plan node_orchestration::bootstrap_agent (
       'run-as'   => 'root',
       'hostname' => $hostname,
     },
-    'sensitive_parameters' => {
-      'password'            => $password,
-      'private-key-content' => $ssh_private_key,
-    },
+    'sensitive_parameters' => $sensitive_parameters,
     'duplicates'           => 'replace',
   }.to_json
 
