@@ -1,17 +1,23 @@
 # Register a new node in the PE inventory and run pe_bootstrap against it
 #
 # @param name The desired node certname
-# @param user The SSH user to bootstrap with
 # @param hostname The real hostname or IP address of the node to bootstrap
+# @param user The SSH user to bootstrap with
 plan node_orchestration::bootstrap_agent (
   String $name,
-  String $user,
   Stdlib::Host $hostname,
+  String $user,
+  Optional[Sensitive] $password = undef,
 ) {
   $task_server     = lookup('node_orchestration::task_server', String)
   $puppet_server   = lookup('node_orchestration::puppet_server', String, 'first', $task_server)
   $api_token       = lookup('node_orchestration::api_token', String)
-  $ssh_private_key = lookup('node_orchestration::ssh_private_key', String)
+
+  if $password {
+    $ssh_private_key = undef
+  } else {
+    $ssh_private_key = lookup('node_orchestration::ssh_private_key', String)
+  }
 
   $type_header = 'Content-Type: application/json'
   $auth_header = "X-Authentication: ${api_token}"
@@ -26,6 +32,7 @@ plan node_orchestration::bootstrap_agent (
       'hostname' => $hostname,
     },
     'sensitive_parameters' => {
+      'password'            => $password,
       'private-key-content' => $ssh_private_key,
     },
     'duplicates'           => 'replace',

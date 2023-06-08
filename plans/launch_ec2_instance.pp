@@ -68,7 +68,7 @@ plan node_orchestration::launch_ec2_instance (
 
   run_plan('node_orchestration::bootstrap_agent', {
     name     => $name,
-    user     => $real_ami_user,
     hostname => $hostname,
+    user     => $real_ami_user,
   })
 }
