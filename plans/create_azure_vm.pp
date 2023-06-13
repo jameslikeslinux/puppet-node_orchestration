@@ -6,6 +6,8 @@
 # @param admin_user Overrides the initial VM username set in Hiera
 # @param admin_password Overrides the initial VM password set in Hiera
 # @param resource_group Overrides the resource group set in Hiera
+# @param os_disk_size If set, the size of the OS disk in GB. Otherwise, use Azure defaults.
+# @param data_disk_sizes The sizes of the data disks to attach in GB
 plan node_orchestration::create_azure_vm (
   String $name,
   Enum['small', 'medium', 'large'] $size,
@@ -13,6 +15,8 @@ plan node_orchestration::create_azure_vm (
   Optional[String] $admin_user = undef,
   Optional[Sensitive] $admin_password = undef,
   Optional[String] $resource_group = undef,
+  Optional[Integer] $os_disk_size = undef,
+  Array[Integer] $data_disk_sizes = [],
 ) {
   # Let defaults be defined in Hiera, overridden with parameters
   $real_image_id       = pick($image_id, lookup('node_orchestration::az_image_id', Optional[String], 'first', undef))
@@ -39,7 +43,17 @@ plan node_orchestration::create_azure_vm (
     '--admin-username', $real_admin_user,
     '--admin-password', $real_admin_password.unwrap,
     '--authentication-type', 'password',
-  ].shellquote
+
+    $os_disk_size ? {
+      undef   => [],
+      default => ['--os-disk-size', String($os_disk_size)],
+    },
+
+    $data_disk_sizes ? {
+      []      => [],
+      default => ['--data-disk-sizes-gb', $data_disk_sizes.map |$s| { String($s) }],
+    },
+  ].flatten.shellquote
 
   $vm_info = run_command($vm_create_command, $task_server, 'Create the VM').first.value['stdout'].parsejson
 
