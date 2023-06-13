@@ -14,7 +14,7 @@ plan node_orchestration::launch_ec2_instance (
   Optional[String] $image_id = undef,
   Optional[String] $ami_user = undef,
   Optional[String] $key_name = undef,
-  Optional[Variant[String, Array[String]]] $security_groups = undef,
+  Optional[Array[String]] $security_groups = undef,
   Optional[String] $subnet   = undef,
   Optional[String] $region   = undef,
 ) {
@@ -22,7 +22,7 @@ plan node_orchestration::launch_ec2_instance (
   $real_image_id = pick($image_id, lookup('node_orchestration::ec2_image_id', Optional[String], 'first', undef))
   $real_ami_user = pick($ami_user, lookup('node_orchestration::ec2_ami_user', Optional[String], 'first', undef))
   $real_key_name = pick($key_name, lookup('node_orchestration::ec2_key_name', Optional[String], 'first', undef))
-  $real_sgs      = pick($security_groups, lookup('node_orchestration::ec2_security_groups', Optional[Variant[String, Array[String]]], 'first', undef))
+  $real_sgs      = pick($security_groups, lookup('node_orchestration::ec2_security_groups', Optional[Array[String]], 'first', undef))
   $real_subnet   = pick($subnet, lookup('node_orchestration::ec2_subnet', Optional[String], 'first', undef))
   $real_region   = pick($region, lookup('node_orchestration::ec2_region', Optional[String], 'first', undef))
 
@@ -48,7 +48,8 @@ plan node_orchestration::launch_ec2_instance (
       break()
     }
 
-    $resource = run_command("/opt/puppetlabs/bin/puppet resource --to_yaml ec2_instance ${name.shellquote}", $task_server, 'Check if the instance is running', {
+    $check_cmd = shellquote('/opt/puppetlabs/bin/puppet', 'resource', '--to_yaml', 'ec2_instance', $name)
+    $resource = run_command($check_cmd, $task_server, 'Check if the instance is running', {
       _env_vars => { 'AWS_REGION' => $real_region },
     }).first.value['stdout'].parseyaml
 

@@ -1,6 +1,11 @@
 # Create an Azure VM with default settings
 #
-# @param name The name of the instance to create
+# @param name The name of the VM to create
+# @param size The type of VM to create (small, medium, large)
+# @param image_id Overrides the default image ID set in Hiera
+# @param admin_user Overrides the initial VM username set in Hiera
+# @param admin_password Overrides the initial VM password set in Hiera
+# @param resource_group Overrides the resource group set in Hiera
 plan node_orchestration::create_azure_vm (
   String $name,
   Enum['small', 'medium', 'large'] $size,

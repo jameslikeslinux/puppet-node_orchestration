@@ -20,7 +20,7 @@ class node_orchestration::azure (
     }
 
     default: {
-      fail("Azure CLI installation not handled for ${facts['os']['family']}")
+      notice("Azure CLI installation not handled for ${facts['os']['family']}")
     }
   }
 

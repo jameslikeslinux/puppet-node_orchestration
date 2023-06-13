@@ -25,7 +25,23 @@ access to the cloud providers.
 
 ## Setup
 
-### Setup Requirements
+### Puppet Enterprise Requirements
+
+1. Define a `plan_hierarchy` in Hiera as described at
+   https://www.puppet.com/docs/bolt/latest/hiera.html#outside-apply-blocks.
+2. Create a new PE user role called "Inventory Manager" with the permissions
+   from type "Nodes" with action "add and delete connection information from
+   inventory service." Assign a new service account to this role and generate a
+   long-lived API token for the account, such as with the command: `puppet
+   access login --lifetime 1y --print`. Provide the token in the Hiera plan
+   hierarchy under the key `node_orchestration::api_token`. EYAML is suggested.
+3. Tell the plan where to run its tasks with the Hiera plan hierarchy key
+   `node_orchestration::task_server`. This is the server where you declared the
+   `node_orchestration::aws` class. If this differs from your main Puppet
+   server, also set the `node_orchestrator::puppet_server` key so the plan
+   knows against which server to bootstrap the new agent.
+
+### AWS Requirements
 
 1. Create an IAM user with the `AmazonEC2FullAccess` policy. This policy is
    sufficient, but not necessarily required. There may be a reduced set of
@@ -40,12 +56,10 @@ access to the cloud providers.
    }
    ```
    These values can of course be set in Hiera.
-2. Define a `plan_hierarchy` in Hiera as described at
-   https://www.puppet.com/docs/bolt/latest/hiera.html#outside-apply-blocks.
-3. Create the following AWS resources: SSH key pair (note name and private key
+2. Create the following AWS resources: SSH key pair (note name and private key
    content), named subnet (VPC subnets have no names out of the box), and one
    or more named security groups.
-4. Somewhere in the Hiera plan hierarchy, define the following settings:
+3. Somewhere in the Hiera plan hierarchy, define the following settings:
    ```yaml
    ---
    node_orchestration::ec2_key_name: 'the-key-name'
@@ -54,17 +68,31 @@ access to the cloud providers.
    node_orchestration::ssh_private_key: >
      ENC[PKCS7,MII...the-eyaml-encrypted-private-key-contents]
    ```
-5. Create a new PE user role called "Inventory Manager" with the permissions
-   from type "Nodes" with action "add and delete connection information from
-   inventory service." Assign a new service account to this role and generate a
-   long-lived API token for the account, such as with the command: `puppet
-   access login --lifetime 1y --print`. Provide the token in the Hiera plan
-   hierarchy under the key `node_orchestration::api_token`. EYAML is suggested.
-6. Tell the plan where to run its tasks with the Hiera plan hierarchy key
-   `node_orchestration::task_server`. This is the server where you declared the
-   `node_orchestration::aws` class. If this differs from your main Puppet
-   server, also set the `node_orchestrator::puppet_server` key so the plan
-   knows against which server to bootstrap the new agent.
+
+### Azure Requirements
+
+1. Create a new Enterprise Application object in the Azure Active Directory to
+   represent this module. Take note of the resulting client ID and secret.
+2. Create a new Resource Group and Virtual Network to contain the VMs managed
+   by this module.
+3. In the new Resource Group's access control (IAM) settings, add a
+   "Contributor" role assignment for your new application principal. 
+4. Declare the `node_orchestration::azure` class on your Puppet server to
+   configure the Azure CLI for this module to use, like:
+   ```puppet
+   class { 'node_orchestration::azure':
+     tenant_id     => 'ea383a66-fake-fake-fake-f3524734e142', # Active Directory ID
+     client_id     => '6b7f97e9-fake-fake-fake-ad4c99440348',
+     client_secret => Sensitive('the-secret-access-key'),
+   }
+   ```
+5. Somewhere in the Hiera plan hierarchy, define the following settings:
+   ```yaml
+   ---
+   node_orchestration::az_resource_group: 'ResourceGroupName' # that you created in step 2
+   node_orchestration::az_admin_password: >
+     ENC[PKCS7,MII...the-eyaml-encrypted-initial-virtual-machine-password]
+   ```
 
 ### Beginning with node_orchestration
 
@@ -92,10 +120,27 @@ t3.medium, and t3.large by default. This can be overridden with the
 reasonable organization defaults. Likewise, many of the plan parameters can be
 expressed as defaults in Hiera plan data.
 
+### `node_orchestration::create_azure_vm`
+
+Create an Azure VM with default settings.
+
+# `name`: The name of the VM to create
+# `size`: The type of VM to create (small, medium, large)
+# `image_id`: Overrides the default image ID set in Hiera
+# `admin_user`: Overrides the initial VM username set in Hiera
+# `admin_password`: Overrides the initial VM password set in Hiera
+# `resource_group`: Overrides the resource group set in Hiera
+
+The available sizes: small, medium, large; map to VM sizes Standard_B1s,
+Standard_B2s, and Standard_D2s_v3 by default. This can be overridden with the
+`node_orchestration::az_vm_sizes` Hiera plan data hash to provide reasonable
+organization defaults. Likewise, many of the plan parameters can be expressed
+as defaults in Hiera plan data.
+
 ## Limitations
 
-This is a proof-of-concept module that provides basic support for EC2. Not all
-the EC2 settings you might want to control are exposed, but the plans as
-implemented aim to demonstrate various ways those settings can be defined: as
-parameters, in module data, and Hiera. Implementations for other cloud
-providers may look very different from this initial EC2 version.
+This is a proof-of-concept module that provides basic support for AWS and
+Azure. Not all the settings you might want to control are exposed, but the
+plans as implemented aim to demonstrate various ways those settings can be
+defined: as parameters, in module data, and Hiera. Implementations for other
+cloud providers may look very different from these initial versions.
