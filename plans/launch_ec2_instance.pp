@@ -23,6 +23,8 @@ plan node_orchestration::launch_ec2_instance (
   Optional[String] $region = undef,
   Optional[Integer] $os_disk_size = undef,
 ) {
+  $instance_name = $name
+
   # Let defaults be defined in Hiera, overridden with parameters
   $real_image_id       = pick($image_id, lookup('node_orchestration::ec2_image_id', Optional[String], 'first', undef))
   $real_ami_user       = pick($ami_user, lookup('node_orchestration::ec2_ami_user', Optional[String], 'first', undef))
@@ -40,30 +42,27 @@ plan node_orchestration::launch_ec2_instance (
   }
 
   if $os_disk_size {
-    $block_devices_spec = {
+    $block_devices = {
       device_name => '/dev/sda1',
       volume_size => $os_disk_size,
     }
-    $block_devices = "block_devices=${block_devices_spec.to_json.shellquote}"
   } else {
-    $block_devices = []
+    $block_devices = undef
   }
 
-  $instance_create_cmd = [
-    '/opt/puppetlabs/bin/puppet', 'resource',
-    'ec2_instance', $name,
-    'ensure=running',
-    "image_id=${real_image_id}",
-    "instance_type=${instance_types[$size]}",
-    "key_name=${real_key_name}",
-    "region=${real_region}",
-    "associate_public_ip_address=${real_public_ip_addr}",
-    "security_groups=${real_sgs.join(',')}",
-    "subnet=${real_subnet}",
-    $block_devices,
-  ].flatten.shellquote
-
-  run_command($instance_create_cmd, $task_server, 'Create the instance')
+  apply($task_server, '_description' => 'Create the instance') {
+    ec2_instance { $instance_name:
+      ensure                      => running,
+      image_id                    => $real_image_id,
+      instance_type               => $instance_types[$size],
+      key_name                    => $real_key_name,
+      region                      => $real_region,
+      associate_public_ip_address => $real_public_ip_addr,
+      security_groups             => $real_sgs,
+      subnet                      => $real_subnet,
+      block_devices               => $block_devices,
+    }
+  }
 
   $ip_address = Integer[0, 6].reduce(undef) |$result, $i| {
     if $result {
