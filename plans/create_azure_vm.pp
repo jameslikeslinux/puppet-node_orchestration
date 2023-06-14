@@ -5,6 +5,7 @@
 # @param image_id Overrides the default image ID set in Hiera
 # @param admin_user Overrides the initial VM username set in Hiera
 # @param admin_password Overrides the initial VM password set in Hiera
+# @param public_ip_address Overrides Hiera setting on whether to assign a public IP address
 # @param resource_group Overrides the resource group set in Hiera
 # @param os_disk_size If set, the size of the OS disk in GB. Otherwise, use Azure defaults.
 # @param data_disk_sizes The sizes of the data disks to attach in GB
@@ -14,6 +15,7 @@ plan node_orchestration::create_azure_vm (
   Optional[String] $image_id = undef,
   Optional[String] $admin_user = undef,
   Optional[Sensitive] $admin_password = undef,
+  Optional[Boolean] $public_ip_address = undef,
   Optional[String] $resource_group = undef,
   Optional[Integer] $os_disk_size = undef,
   Array[Integer] $data_disk_sizes = [],
@@ -23,6 +25,7 @@ plan node_orchestration::create_azure_vm (
   $real_admin_user     = pick($admin_user, lookup('node_orchestration::az_admin_user', Optional[String], 'first', undef))
   $real_admin_password = pick($admin_password, lookup('node_orchestration::az_admin_password', Optional[Sensitive], 'first', undef))
   $real_resource_group = pick($resource_group, lookup('node_orchestration::az_resource_group', Optional[String], 'first', undef))
+  $real_public_ip_addr = pick($public_ip_address, lookup('node_orchestration::az_public_ip_address', Optional[Boolean], 'first', true))
 
   $task_server     = lookup('node_orchestration::task_server', String)
   $vm_sizes        = lookup('node_orchestration::az_vm_sizes', Hash)
@@ -44,6 +47,11 @@ plan node_orchestration::create_azure_vm (
     '--admin-password', $real_admin_password.unwrap,
     '--authentication-type', 'password',
 
+    $real_public_ip_addr ? {
+      false   => ['--public-ip-address', ''],
+      default => [],
+    },
+
     $os_disk_size ? {
       undef   => [],
       default => ['--os-disk-size', String($os_disk_size)],
@@ -60,9 +68,15 @@ plan node_orchestration::create_azure_vm (
   log::info('Waiting for instance to finish booting')
   ctrl::sleep(20)
 
+  if $real_public_ip_addr {
+    $ip_address = $vm_info['publicIpAddress']
+  } else {
+    $ip_address = $vm_info['privateIpAddress']
+  }
+
   run_plan('node_orchestration::bootstrap_agent', {
     name     => $name,
-    hostname => $vm_info['publicIpAddress'],
+    hostname => $ip_address,
     user     => $real_admin_user,
     password => $real_admin_password,
   })

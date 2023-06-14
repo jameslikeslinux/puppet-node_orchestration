@@ -124,12 +124,15 @@ expressed as defaults in Hiera plan data.
 
 Create an Azure VM with default settings.
 
-# `name`: The name of the VM to create
-# `size`: The type of VM to create (small, medium, large)
-# `image_id`: Overrides the default image ID set in Hiera
-# `admin_user`: Overrides the initial VM username set in Hiera
-# `admin_password`: Overrides the initial VM password set in Hiera
-# `resource_group`: Overrides the resource group set in Hiera
+* `name`: The name of the VM to create
+* `size`: The type of VM to create (small, medium, large)
+* `image_id`: Overrides the default image ID set in Hiera
+* `admin_user`: Overrides the initial VM username set in Hiera
+* `admin_password`: Overrides the initial VM password set in Hiera
+* `public_ip_address`: Overrides Hiera setting on whether to assign a public IP address
+* `resource_group`: Overrides the resource group set in Hiera
+* `os_disk_size`: If set, the size of the OS disk in GB. Otherwise, use Azure defaults.
+* `data_disk_sizes`: The sizes of the data disks to attach in GB
 
 The available sizes: small, medium, large; map to VM sizes Standard_B1s,
 Standard_B2s, and Standard_D2s_v3 by default. This can be overridden with the
