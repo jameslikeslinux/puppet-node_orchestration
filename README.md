@@ -11,6 +11,7 @@ them to Puppet Enterprise, and bootstrapping Puppet agent on them.
     * [Beginning with node_orchestration](#beginning-with-node_orchestration)
 1. [Usage - Configuration options and additional functionality](#usage)
 1. [Limitations - OS compatibility, etc.](#limitations)
+1. [Known Issues](#known-issues)
 
 ## Description
 
@@ -110,7 +111,8 @@ Create an EC2 instance with default settings.
 * `image_id`: Overrides the default AMI set in Hiera
 * `ami_user`: Overrides the default AMI username set in Hiera
 * `key_name`: Overrides the default SSH key name set in Hiera
-* `public_ip_address`: Overrides Hiera setting on whether to assign a public IP address
+* `public_ip_address`: Overrides Hiera setting on whether to assign a public IP
+  address. Subnet default takes priority.
 * `security_groups`: Overrides the default SG or list of SGs set in Hiera
 * `subnet`: Overrides the default subnet name set in Hiera
 * `region`: Overrides the default region set in Hiera
@@ -148,3 +150,7 @@ Azure. Not all the settings you might want to control are exposed, but the
 plans as implemented aim to demonstrate various ways those settings can be
 defined: as parameters, in module data, and Hiera. Implementations for other
 cloud providers may look very different from these initial versions.
+
+## Known Issues
+
+The plan parameter `node_orchestration::launch_ec2_instance::public_ip_address` has no effect. The EC2 instance 

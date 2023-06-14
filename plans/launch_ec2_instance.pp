@@ -5,7 +5,8 @@
 # @param image_id Overrides the default AMI set in Hiera
 # @param ami_user Overrides the default AMI username set in Hiera
 # @param key_name Overrides the default SSH key name set in Hiera
-# @param public_ip_address Overrides Hiera setting on whether to assign a public IP address
+# @param public_ip_address Overrides Hiera setting on whether to assign a public IP
+#   address. Subnet default takes priority.
 # @param security_groups Overrides the default SG or list of SGs set in Hiera
 # @param subnet Overrides the default subnet name set in Hiera
 # @param region Overrides the default region set in Hiera
@@ -51,7 +52,7 @@ plan node_orchestration::launch_ec2_instance (
 
   run_command($instance_create_cmd, $task_server, 'Create the instance')
 
-  $hostname = Integer[0, 6].reduce(undef) |$result, $i| {
+  $ip_address = Integer[0, 6].reduce(undef) |$result, $i| {
     if $result {
       break()
     }
@@ -66,9 +67,9 @@ plan node_orchestration::launch_ec2_instance (
       ctrl::sleep(20)
 
       if $real_public_ip_addr {
-        $resource['ec2_instance'][$name]['public_dns_name']
+        $resource['ec2_instance'][$name]['public_ip_address']
       } else {
-        $resource['ec2_instance'][$name]['private_dns_name']
+        $resource['ec2_instance'][$name]['private_ip_address']
       }
     } else {
       log::info('Instance is not running yet')
@@ -76,13 +77,13 @@ plan node_orchestration::launch_ec2_instance (
     }
   }
 
-  unless $hostname {
+  unless $ip_address {
     fail('Instance failed to launch within 60 seconds')
   }
 
   run_plan('node_orchestration::bootstrap_agent', {
     name     => $name,
-    hostname => $hostname,
+    hostname => $ip_address,
     user     => $real_ami_user,
   })
 }
