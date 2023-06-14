@@ -10,6 +10,7 @@
 # @param security_groups Overrides the default SG or list of SGs set in Hiera
 # @param subnet Overrides the default subnet name set in Hiera
 # @param region Overrides the default region set in Hiera
+# @param os_disk_size If set, the size of the OS disk in GB. Otherwise, use EC2 defaults.
 plan node_orchestration::launch_ec2_instance (
   String $name,
   Enum['small', 'medium', 'large'] $size,
@@ -18,8 +19,9 @@ plan node_orchestration::launch_ec2_instance (
   Optional[String] $key_name = undef,
   Optional[Boolean] $public_ip_address = undef,
   Optional[Array[String]] $security_groups = undef,
-  Optional[String] $subnet   = undef,
-  Optional[String] $region   = undef,
+  Optional[String] $subnet = undef,
+  Optional[String] $region = undef,
+  Optional[Integer] $os_disk_size = undef,
 ) {
   # Let defaults be defined in Hiera, overridden with parameters
   $real_image_id       = pick($image_id, lookup('node_orchestration::ec2_image_id', Optional[String], 'first', undef))
@@ -37,6 +39,16 @@ plan node_orchestration::launch_ec2_instance (
     fail("Size '${size}' not found in 'node_orchestration::ec2_instance_types' lookup hash")
   }
 
+  if $os_disk_size {
+    $block_devices_spec = {
+      device_name => '/dev/sda1',
+      volume_size => $os_disk_size,
+    }
+    $block_devices = "block_devices=${block_devices_spec.to_json.shellquote}"
+  } else {
+    $block_devices = []
+  }
+
   $instance_create_cmd = [
     '/opt/puppetlabs/bin/puppet', 'resource',
     'ec2_instance', $name,
@@ -48,7 +60,8 @@ plan node_orchestration::launch_ec2_instance (
     "associate_public_ip_address=${real_public_ip_addr}",
     "security_groups=${real_sgs.join(',')}",
     "subnet=${real_subnet}",
-  ].shellquote
+    $block_devices,
+  ].flatten.shellquote
 
   run_command($instance_create_cmd, $task_server, 'Create the instance')
 

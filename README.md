@@ -116,6 +116,7 @@ Create an EC2 instance with default settings.
 * `security_groups`: Overrides the default SG or list of SGs set in Hiera
 * `subnet`: Overrides the default subnet name set in Hiera
 * `region`: Overrides the default region set in Hiera
+* `os_disk_size`: If set, the size of the OS disk in GB. Otherwise, use EC2 defaults.
 
 The available sizes: small, medium, large; map to EC2 instance types t3.small,
 t3.medium, and t3.large by default. This can be overridden with the
