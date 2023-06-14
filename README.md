@@ -110,6 +110,7 @@ Create an EC2 instance with default settings.
 * `image_id`: Overrides the default AMI set in Hiera
 * `ami_user`: Overrides the default AMI username set in Hiera
 * `key_name`: Overrides the default SSH key name set in Hiera
+* `public_ip_address`: Overrides Hiera setting on whether to assign a public IP address
 * `security_groups`: Overrides the default SG or list of SGs set in Hiera
 * `subnet`: Overrides the default subnet name set in Hiera
 * `region`: Overrides the default region set in Hiera
