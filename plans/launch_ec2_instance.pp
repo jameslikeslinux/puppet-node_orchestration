@@ -1,6 +1,6 @@
 # Create an EC2 instance with default settings
 #
-# @param name The name of the instance to create
+# @param instance_name The name of the instance to create
 # @param size The type of instance to create
 # @param image_id Overrides the default AMI set in Hiera
 # @param ami_user Overrides the default AMI username set in Hiera
@@ -12,7 +12,7 @@
 # @param region Overrides the default region set in Hiera
 # @param os_disk_size If set, the size of the OS disk in GB. Otherwise, use EC2 defaults.
 plan node_orchestration::launch_ec2_instance (
-  String $name,
+  String $instance_name,
   Enum['small', 'medium', 'large'] $size,
   Optional[String] $image_id = undef,
   Optional[String] $ami_user = undef,
@@ -23,8 +23,6 @@ plan node_orchestration::launch_ec2_instance (
   Optional[String] $region = undef,
   Optional[Integer] $os_disk_size = undef,
 ) {
-  $instance_name = $name
-
   # Let defaults be defined in Hiera, overridden with parameters
   $real_image_id       = pick($image_id, lookup('node_orchestration::ec2_image_id', Optional[String], 'first', undef))
   $real_ami_user       = pick($ami_user, lookup('node_orchestration::ec2_ami_user', Optional[String], 'first', undef))
@@ -69,19 +67,21 @@ plan node_orchestration::launch_ec2_instance (
       break()
     }
 
-    $check_cmd = shellquote('/opt/puppetlabs/bin/puppet', 'resource', '--to_yaml', 'ec2_instance', $name)
+    $check_cmd = shellquote('/opt/puppetlabs/bin/puppet', 'resource', '--to_yaml', 'ec2_instance', $instance_name)
     $resource = run_command($check_cmd, $task_server, 'Check if the instance is running', {
       _env_vars => { 'AWS_REGION' => $real_region },
     }).first.value['stdout'].parseyaml
 
-    if $resource['ec2_instance'] and $resource['ec2_instance'][$name] and $resource['ec2_instance'][$name]['ensure'] == 'running' {
+    if $resource['ec2_instance'] and
+        $resource['ec2_instance'][$instance_name] and
+        $resource['ec2_instance'][$instance_name]['ensure'] == 'running' {
       log::info('Waiting for instance to finish booting')
       ctrl::sleep(20)
 
       if $real_public_ip_addr {
-        $resource['ec2_instance'][$name]['public_ip_address']
+        $resource['ec2_instance'][$instance_name]['public_ip_address']
       } else {
-        $resource['ec2_instance'][$name]['private_ip_address']
+        $resource['ec2_instance'][$instance_name]['private_ip_address']
       }
     } else {
       log::info('Instance is not running yet')
@@ -94,7 +94,7 @@ plan node_orchestration::launch_ec2_instance (
   }
 
   run_plan('node_orchestration::bootstrap_agent', {
-    name     => $name,
+    name     => $instance_name,
     hostname => $ip_address,
     user     => $real_ami_user,
   })
