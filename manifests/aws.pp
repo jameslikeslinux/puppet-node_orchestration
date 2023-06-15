@@ -15,6 +15,42 @@ class node_orchestration::aws (
     provider => 'puppet_gem',
   })
 
+  # Manage root user's AWS credentials, especially as used by Bolt 'apply' code
+  file {
+    default:
+      owner => 'root',
+      group => 'root',
+    ;
+
+    '/root/.aws':
+      ensure => directory,
+      mode   => '0755',
+    ;
+
+    '/root/.aws/credentials':
+      ensure => file,
+      mode   => '0400',
+    ;
+  }
+  -> ini_setting {
+    default:
+      ensure  => present,
+      path    => '/root/.aws/credentials',
+      section => 'default',
+    ;
+
+    'root-aws-credentials-aws_access_key_id':
+      setting => 'aws_access_key_id',
+      value   => $access_key_id,
+    ;
+
+    'root-aws-credentials-aws_secret_access_key':
+      setting => 'aws_secret_access_key',
+      value   => $secret_access_key,
+    ;
+  }
+
+  # Manage Puppet agent's AWS credentials
   file { "${settings::confdir}/puppetlabs_aws_credentials.ini":
     ensure => file,
     mode   => '0400',
