@@ -1,6 +1,6 @@
 # Create an Azure VM with default settings
 #
-# @param name The name of the VM to create
+# @param vm_name The name of the VM to create
 # @param size The type of VM to create (small, medium, large)
 # @param image_id Overrides the default image ID set in Hiera
 # @param admin_user Overrides the initial VM username set in Hiera
@@ -10,7 +10,7 @@
 # @param os_disk_size If set, the size of the OS disk in GB. Otherwise, use Azure defaults.
 # @param data_disk_sizes The sizes of the data disks to attach in GB
 plan node_orchestration::create_azure_vm (
-  String $name,
+  String $vm_name,
   Enum['small', 'medium', 'large'] $size,
   Optional[String] $image_id = undef,
   Optional[String] $admin_user = undef,
@@ -24,8 +24,8 @@ plan node_orchestration::create_azure_vm (
   $real_image_id       = pick($image_id, lookup('node_orchestration::az_image_id', Optional[String], 'first', undef))
   $real_admin_user     = pick($admin_user, lookup('node_orchestration::az_admin_user', Optional[String], 'first', undef))
   $real_admin_password = pick($admin_password, lookup('node_orchestration::az_admin_password', Optional[Sensitive], 'first', undef))
-  $real_resource_group = pick($resource_group, lookup('node_orchestration::az_resource_group', Optional[String], 'first', undef))
   $real_public_ip_addr = pick($public_ip_address, lookup('node_orchestration::az_public_ip_address', Optional[Boolean], 'first', true))
+  $real_resource_group = pick($resource_group, lookup('node_orchestration::az_resource_group', Optional[String], 'first', undef))
 
   $task_server     = lookup('node_orchestration::task_server', String)
   $vm_sizes        = lookup('node_orchestration::az_vm_sizes', Hash)
@@ -36,7 +36,7 @@ plan node_orchestration::create_azure_vm (
 
   $vm_create_command = [
     '/usr/bin/az', 'vm', 'create',
-    '-n', $name,
+    '-n', $vm_name,
     '-g', $real_resource_group,
     '--image', $real_image_id,
     '--size', $vm_sizes[$size],
@@ -75,7 +75,7 @@ plan node_orchestration::create_azure_vm (
   }
 
   run_plan('node_orchestration::bootstrap_agent', {
-    name     => $name,
+    name     => $vm_name,
     hostname => $ip_address,
     user     => $real_admin_user,
     password => $real_admin_password,

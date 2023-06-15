@@ -106,7 +106,7 @@ can be run from the PE console.
 
 Create an EC2 instance with default settings.
 
-* `name`: The name of the instance to create
+* `instance_name`: The name of the instance to create
 * `size`: The type of instance to create (small, medium, large)
 * `image_id`: Overrides the default AMI set in Hiera
 * `ami_user`: Overrides the default AMI username set in Hiera
@@ -128,7 +128,7 @@ expressed as defaults in Hiera plan data.
 
 Create an Azure VM with default settings.
 
-* `name`: The name of the VM to create
+* `vm_name`: The name of the VM to create
 * `size`: The type of VM to create (small, medium, large)
 * `image_id`: Overrides the default image ID set in Hiera
 * `admin_user`: Overrides the initial VM username set in Hiera
