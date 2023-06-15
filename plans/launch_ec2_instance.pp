@@ -11,6 +11,7 @@
 # @param subnet Overrides the default subnet name set in Hiera
 # @param region Overrides the default region set in Hiera
 # @param os_disk_size If set, the size of the OS disk in GB. Otherwise, use EC2 defaults.
+# @param role Set the `pp_role` extension request (trusted fact) to this value
 plan node_orchestration::launch_ec2_instance (
   String $instance_name,
   Enum['small', 'medium', 'large'] $size,
@@ -22,6 +23,7 @@ plan node_orchestration::launch_ec2_instance (
   Optional[String] $subnet = undef,
   Optional[String] $region = undef,
   Optional[Integer] $os_disk_size = undef,
+  Optional[String] $role = undef,
 ) {
   # Let defaults be defined in Hiera, overridden with parameters
   $real_image_id       = pick($image_id, lookup('node_orchestration::ec2_image_id', Optional[String], 'first', undef))
@@ -97,5 +99,6 @@ plan node_orchestration::launch_ec2_instance (
     name     => $instance_name,
     hostname => $ip_address,
     user     => $real_ami_user,
+    role     => $role,
   })
 }

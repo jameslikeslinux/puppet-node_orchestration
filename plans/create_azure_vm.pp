@@ -9,6 +9,7 @@
 # @param resource_group Overrides the resource group set in Hiera
 # @param os_disk_size If set, the size of the OS disk in GB. Otherwise, use Azure defaults.
 # @param data_disk_sizes The sizes of the data disks to attach in GB
+# @param role Set the `pp_role` extension request (trusted fact) to this value
 plan node_orchestration::create_azure_vm (
   String $vm_name,
   Enum['small', 'medium', 'large'] $size,
@@ -19,6 +20,7 @@ plan node_orchestration::create_azure_vm (
   Optional[String] $resource_group = undef,
   Optional[Integer] $os_disk_size = undef,
   Array[Integer] $data_disk_sizes = [],
+  Optional[String] $role = undef,
 ) {
   # Let defaults be defined in Hiera, overridden with parameters
   $real_image_id       = pick($image_id, lookup('node_orchestration::az_image_id', Optional[String], 'first', undef))
@@ -79,5 +81,6 @@ plan node_orchestration::create_azure_vm (
     hostname => $ip_address,
     user     => $real_admin_user,
     password => $real_admin_password,
+    role     => $role,
   })
 }

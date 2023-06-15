@@ -8,6 +8,7 @@ plan node_orchestration::bootstrap_agent (
   Stdlib::Host $hostname,
   String $user,
   Optional[Sensitive] $password = undef,
+  Optional[String] $role = undef,
 ) {
   $task_server     = lookup('node_orchestration::task_server', String)
   $puppet_server   = lookup('node_orchestration::puppet_server', String, 'first', $task_server)
@@ -18,9 +19,8 @@ plan node_orchestration::bootstrap_agent (
       'password' => $password.unwrap,
     }
   } else {
-    $ssh_private_key = lookup('node_orchestration::ssh_private_key', String)
     $sensitive_parameters = {
-      'private-key-content' => $ssh_private_key,
+      'private-key-content' => lookup('node_orchestration::ssh_private_key', String),
     }
   }
 
@@ -50,8 +50,16 @@ plan node_orchestration::bootstrap_agent (
 
   run_command($curl_command, $task_server, 'Register inventory connection to the new instance')
 
+  if $role {
+    $bootstrap_role_args = {
+      'extension_request' => ["pp_role=${role}"],
+    }
+  } else {
+    $bootstrap_role_args = {}
+  }
+
   run_task('pe_bootstrap', $name, 'Bootstrap the Puppet agent', {
     certname => $name,
     server   => $puppet_server,
-  })
+  } + $bootstrap_role_args)
 }
