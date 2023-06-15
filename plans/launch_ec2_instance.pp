@@ -48,6 +48,8 @@ plan node_orchestration::launch_ec2_instance (
     $block_devices = undef
   }
 
+  apply_prep($task_server)
+
   apply($task_server, '_description' => 'Create the instance') {
     ec2_instance { $instance_name:
       ensure                      => running,
