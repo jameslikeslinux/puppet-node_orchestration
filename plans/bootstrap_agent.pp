@@ -3,25 +3,30 @@
 # @param name The desired node certname
 # @param hostname The real hostname or IP address of the node to bootstrap
 # @param user The SSH user to bootstrap with
+#
+# @api private
 plan node_orchestration::bootstrap_agent (
   String $name,
   Stdlib::Host $hostname,
+  Enum['ssh', 'winrm'] $connection_type,
   String $user,
   Optional[Sensitive] $password = undef,
   Optional[String] $role = undef,
 ) {
-  $task_server     = lookup('node_orchestration::task_server', String)
-  $puppet_server   = lookup('node_orchestration::puppet_server', String, 'first', $task_server)
-  $api_token       = lookup('node_orchestration::api_token', String)
+  $task_server   = lookup('node_orchestration::task_server', String)
+  $puppet_server = lookup('node_orchestration::puppet_server', String, 'first', $task_server)
+  $api_token     = lookup('node_orchestration::api_token', String)
 
   if $password {
     $sensitive_parameters = {
       'password' => $password.unwrap,
     }
-  } else {
+  } elsif $connection_type == 'ssh' {
     $sensitive_parameters = {
       'private-key-content' => lookup('node_orchestration::ssh_private_key', String),
     }
+  } else {
+    fail("Password is required for connection type '${connection_type}'")
   }
 
   $type_header = 'Content-Type: application/json'
@@ -30,7 +35,7 @@ plan node_orchestration::bootstrap_agent (
 
   $connection_config = {
     'certnames'            => [$name],
-    'type'                 => 'ssh',
+    'type'                 => $connection_type,
     'parameters'           => {
       'user'     => $user,
       'run-as'   => 'root',
