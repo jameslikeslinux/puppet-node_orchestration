@@ -11,7 +11,6 @@ them to Puppet Enterprise, and bootstrapping Puppet agent on them.
     * [Beginning with node_orchestration](#beginning-with-node_orchestration)
 1. [Usage - Configuration options and additional functionality](#usage)
 1. [Limitations - OS compatibility, etc.](#limitations)
-1. [Known Issues](#known-issues)
 
 ## Description
 
@@ -153,7 +152,3 @@ Azure. Not all the settings you might want to control are exposed, but the
 plans as implemented aim to demonstrate various ways those settings can be
 defined: as parameters, in module data, and Hiera. Implementations for other
 cloud providers may look very different from these initial versions.
-
-## Known Issues
-
-The plan parameter `node_orchestration::launch_ec2_instance::public_ip_address` has no effect. The EC2 instance 
