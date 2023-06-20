@@ -1,7 +1,16 @@
 ---
 lookup_options:
+  node_orchestration::az_admin_password:
+    convert_to: 'Sensitive'
+  node_orchestration::az_vm_sizes:
+    merge: hash
   node_orchestration::ec2_instance_types:
     merge: hash
+
+node_orchestration::az_vm_sizes:
+  small: 'Standard_B1s'
+  medium: 'Standard_B2s'
+  large: 'Standard_D2s_v3'
 
 node_orchestration::ec2_instance_types:
   small: 't3.small'
@@ -9,5 +18,7 @@ node_orchestration::ec2_instance_types:
   large: 't3.large'
 
 # Provide reasonable default: Ubuntu 22.04
+node_orchestration::az_image_id: 'Ubuntu2204'
+node_orchestration::az_admin_user: 'azureuser'
 node_orchestration::ec2_image_id: 'ami-053b0d53c279acc90'
 node_orchestration::ec2_ami_user: 'ubuntu'
