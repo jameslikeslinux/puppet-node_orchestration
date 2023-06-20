@@ -74,19 +74,26 @@ plan node_orchestration::create_azure_vm (
     $puppet_server = lookup('node_orchestration::puppet_server', String, 'first', $task_server)
 
     if $role {
-      $install_role_param = ["extension_requests:pp_role=${role}"]
+      $install_role_param = "extension_requests:pp_role=${role}"
     } else {
-      $install_role_param = []
+      $install_role_param = ''
     }
+
+    $agent_install_script = @("INSTALL":ps1/$L)
+      [System.Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; \
+      [Net.ServicePointManager]::ServerCertificateValidationCallback = {\$true}; \
+      \$webClient = New-Object System.Net.WebClient; \
+      \$webClient.DownloadFile('https://${puppet_server}:8140/packages/current/install.ps1', 'install.ps1'); \
+      .\install.ps1 -v main:certname=${vm_name} main:server=${puppet_server} ${install_role_param}
+      |-INSTALL
 
     $agent_install_command = [
       '/usr/bin/az', 'vm', 'run-command', 'invoke',
       '-n', $vm_name,
       '-g', $real_resource_group,
-      '--command-id', 'PuppetAgentInstall',
-      '--scripts', '@/opt/puppetlabs/server/data/packages/public/current/install.ps1',
-      '--parameters', "main:certname=${vm_name}", "main:server=${puppet_server}", $install_role_param,
-    ].flatten.shellquote
+      '--command-id', 'RunPowerShellScript',
+      '--scripts', $agent_install_script,
+    ].shellquote
 
     run_command($agent_install_command, $task_server, 'Install the Puppet agent')
   } else {
