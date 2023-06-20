@@ -21,7 +21,6 @@ plan node_orchestration::create_azure_vm (
   Optional[Integer] $os_disk_size = undef,
   Array[Integer] $data_disk_sizes = [],
   Optional[String] $role = undef,
-  Boolean $windows = false,
 ) {
   # Let defaults be defined in Hiera, overridden with parameters
   $real_image_id       = pick($image_id, lookup('node_orchestration::az_image_id', Optional[String], 'first', undef))
@@ -77,18 +76,11 @@ plan node_orchestration::create_azure_vm (
     $ip_address = $vm_info['privateIpAddress']
   }
 
-  if $windows {
-    $connection_type = 'winrm'
-  } else {
-    $connection_type = 'ssh'
-  }
-
   run_plan('node_orchestration::bootstrap_agent', {
-    name            => $vm_name,
-    hostname        => $ip_address,
-    connection_type => $connection_type,
-    user            => $real_admin_user,
-    password        => $real_admin_password,
-    role            => $role,
+    name     => $vm_name,
+    hostname => $ip_address,
+    user     => $real_admin_user,
+    password => $real_admin_password,
+    role     => $role,
   })
 }
