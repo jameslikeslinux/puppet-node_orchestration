@@ -70,17 +70,38 @@ plan node_orchestration::create_azure_vm (
   log::info('Waiting for instance to finish booting')
   ctrl::sleep(20)
 
-  if $real_public_ip_addr {
-    $ip_address = $vm_info['publicIpAddress']
-  } else {
-    $ip_address = $vm_info['privateIpAddress']
-  }
+  if $real_image_id =~ /Win/ {
+    $puppet_server = lookup('node_orchestration::puppet_server', String, 'first', $task_server)
 
-  run_plan('node_orchestration::bootstrap_agent', {
-    name     => $vm_name,
-    hostname => $ip_address,
-    user     => $real_admin_user,
-    password => $real_admin_password,
-    role     => $role,
-  })
+    if $role {
+      $install_role_param = ["extension_requests:pp_role=${role}"]
+    } else {
+      $install_role_param = []
+    }
+
+    $agent_install_command = [
+      '/usr/bin/az', 'vm', 'run-command', 'invoke',
+      '-n', $vm_name,
+      '-g', $real_resource_group,
+      '--command-id', 'PuppetAgentInstall',
+      '--scripts', '@/opt/puppetlabs/server/data/packages/public/current/install.ps1',
+      '--parameters', "main:certname=${vm_name}", "main:server=${puppet_server}", $install_role_param,
+    ].flatten.shellquote
+
+    run_command($agent_install_command, $task_server, 'Install the Puppet agent')
+  } else {
+    if $real_public_ip_addr {
+      $ip_address = $vm_info['publicIpAddress']
+    } else {
+      $ip_address = $vm_info['privateIpAddress']
+    }
+
+    run_plan('node_orchestration::bootstrap_agent', {
+      name     => $vm_name,
+      hostname => $ip_address,
+      user     => $real_admin_user,
+      password => $real_admin_password,
+      role     => $role,
+    })
+  }
 }
