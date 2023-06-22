@@ -151,4 +151,10 @@ This is a proof-of-concept module that provides basic support for AWS and
 Azure. Not all the settings you might want to control are exposed, but the
 plans as implemented aim to demonstrate various ways those settings can be
 defined: as parameters, in module data, and Hiera. Implementations for other
-cloud providers may look very different from these initial versions.
+cloud providers may look very different from these initial versions. Please
+open an issue with features you'd like to see.
+
+Support for Windows nodes has been tested in Azure but not EC2. In Azure,
+bootstrapping a Windows node can be triggered by passing an `image_id`
+containing `Win`, as all the Azure-provided Windows images have. This interface
+is subject to change based on future development and feedback.
