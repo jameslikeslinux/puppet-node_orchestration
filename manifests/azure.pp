@@ -1,4 +1,4 @@
-# Configure pre-requisites for puppetlabs-azure module
+# Configure Azure CLI needed by this module's plans
 #
 # @param tenant_id The Azure AD tenant ID containing your app registration
 # @param client_id The ID associated with your app registration
